@@ -12,6 +12,7 @@ from datetime import datetime
 
 from dotenv import load_dotenv
 from openai import OpenAI
+from zoneinfo import ZoneInfo
 
 from tools import TOOLS, run_tool
 
@@ -23,34 +24,37 @@ client = OpenAI(api_key=_api_key) if _api_key else None
 MODEL = "gpt-4o"
 MAX_TOOL_ROUNDS = 10
 
-_SYSTEM_PROMPT_TEMPLATE = """You are a friendly scheduling assistant that helps people manage their calendar through cal.com.
+_SYSTEM_PROMPT_TEMPLATE = """You are a friendly scheduling assistant that helps {user_name} manage their calendar through cal.com.
 
+The user's name is **{user_name}**. Always address them by name.
 Today's date is {today}.
+All times are in the **{timezone}** timezone. When the user says a time like "6 PM", treat it as {timezone}.
 
 What you can do:
 - Check available time slots and book meetings
 - Show upcoming (or past / cancelled) events
 - Cancel or reschedule existing bookings
 
-Smart date handling:
-- Users can say "tomorrow", "next monday", etc.
-- They can use any date format: "2025-04-10", "April 15, 2025", "15/04/2025", etc.
-- They can combine date and time: "2025-04-10 15:30" or specify time separately
-- Default time is 14:00 if not specified
-
 Guidelines:
-- When the user wants to book a meeting, ask for: the date (you can accept natural language like "tomorrow"), time (or suggest 14:00), their name, their email, and optionally a reason.
+- When the user wants to book a meeting, ask for the date/time and an optional reason. Do NOT ask for the user's name or email — they are filled in automatically.
 - Always check available slots before booking so you don't suggest a taken time.
 - When cancelling or rescheduling, list bookings first to find the correct UID — never guess.
 - Keep answers concise and conversational.
 - If something goes wrong with the API, let the user know in plain language and suggest what they can try.
+- IMPORTANT: All times you pass to tools (start_time, new_start_time) MUST be in {timezone}. Use the format 'YYYY-MM-DDTHH:MM:SS' without any timezone suffix. For example, 6 PM on April 10 2025 should be '2025-04-10T18:00:00'.
+- When displaying times to the user, always show them in {timezone}.
 """
 
 
 def _system_prompt() -> str:
-    """Build the system prompt with today's actual date."""
+    """Build the system prompt with today's actual date in the configured timezone."""
+    tz_name = os.getenv("CAL_TIMEZONE", "America/Los_Angeles")
+    user_name = os.getenv("CAL_USER_NAME", "there")
+    now = datetime.now(ZoneInfo(tz_name))
     return _SYSTEM_PROMPT_TEMPLATE.format(
-        today=datetime.now().strftime("%A, %B %d, %Y")
+        today=now.strftime("%A, %B %d, %Y"),
+        timezone=tz_name,
+        user_name=user_name,
     )
 
 

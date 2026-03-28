@@ -10,8 +10,15 @@ users can chat at the same time without stepping on each other.
 
 import chainlit as cl
 
+import os
+
+from dotenv import load_dotenv
+
 from cal_client import check_config
 from chatbot import build_initial_messages, chat_async
+
+load_dotenv()
+_USER_NAME = os.getenv("CAL_USER_NAME", "there")
 
 
 @cl.on_chat_start
@@ -33,7 +40,7 @@ async def start():
     cl.user_session.set("messages", build_initial_messages())
     await cl.Message(
         content=(
-            "Hey there! I'm your scheduling assistant. I can help you:\n\n"
+            f"Hey {_USER_NAME}! I'm your scheduling assistant. I can help you:\n\n"
             "- **Book** a new meeting\n"
             "- **List** your upcoming events\n"
             "- **Cancel** or **reschedule** an event\n\n"

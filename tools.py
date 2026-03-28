@@ -41,39 +41,23 @@ TOOLS = [
         "function": {
             "name": "create_booking",
             "description": (
-                "Book a meeting on a specific date and time. You can use natural language "
-                "for dates like 'tomorrow', 'next monday', or formats like '2025-04-10', "
-                "'April 15, 2025', etc. Time defaults to 14:00 if not specified."
+                "Book a meeting at a specific time. The user's name and email "
+                "are filled in automatically — only the start time and an "
+                "optional reason are needed."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "date": {
+                    "start_time": {
                         "type": "string",
-                        "description": (
-                            "The date in any format or natural language. Examples: "
-                            "'tomorrow', 'next monday', '2025-04-10', "
-                            "'April 15', '15/04/2025', '2025-04-10 15:30', or just 'April 15'"
-                        ),
-                    },
-                    "time": {
-                        "type": "string",
-                        "description": "Time in HH:MM format, e.g. '14:00' or '15:30'. Defaults to '14:00'.",
-                    },
-                    "attendee_name": {
-                        "type": "string",
-                        "description": "Name of the person attending.",
-                    },
-                    "attendee_email": {
-                        "type": "string",
-                        "description": "Email of the attendee.",
+                        "description": "Datetime in the user's local timezone (from system prompt), e.g. '2025-04-10T14:00:00'. Do NOT append 'Z'.",
                     },
                     "reason": {
                         "type": "string",
                         "description": "Optional note or reason for the meeting.",
                     },
                 },
-                "required": ["date", "attendee_name", "attendee_email"],
+                "required": ["start_time"],
             },
         },
     },
@@ -140,7 +124,7 @@ TOOLS = [
                     },
                     "new_start_time": {
                         "type": "string",
-                        "description": "New start time in ISO-8601 format.",
+                        "description": "New start time in user's local timezone, e.g. '2025-04-10T14:00:00'. Do NOT append 'Z'.",
                     },
                     "reason": {
                         "type": "string",
@@ -178,18 +162,6 @@ def run_tool(name: str, arguments: str) -> str:
 
     try:
         kwargs = json.loads(arguments)
-        
-        # Special handling for create_booking: convert date/time to start_time
-        if name == "create_booking" and "date" in kwargs:
-            date_str = kwargs.pop("date")
-            time_str = kwargs.pop("time", "14:00")
-            
-            # Import here to avoid circular imports
-            from cal_client import parse_date_string
-            
-            start_time = parse_date_string(date_str, time_str)
-            kwargs["start_time"] = start_time
-        
         result = fn(**kwargs)
         return json.dumps(result, default=str)
     except Exception as exc:
