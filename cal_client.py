@@ -91,7 +91,7 @@ def get_available_slots(start_date: str, end_date: str, event_type_id: int | Non
         "timeZone": USER_TIMEZONE,
     }
     with _client() as c:
-        resp = c.get("/slots", params=params, headers={"cal-api-version": "2024-09-04"})
+        resp = c.get("/slots", params=params, headers={"cal-api-version": "2026-02-25"})
         resp.raise_for_status()
         return resp.json()
 
